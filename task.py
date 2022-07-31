@@ -35,17 +35,10 @@ def format_color_groups(df):
         ''
 # def format_colorcode_groups(df):
 #     if 'labelIds' in header_labels:
-#         colors = ['blue', 'green', 'yellow']
-#         current_date = datetime.now()
 #         x = df.copy()
+#         colors = list(x['labelIds'].unique())
+#         current_date = datetime.now()
 #         factors = list(x['labelIds'].unique())
-#         for factor in factors:
-#             print(factor)
-#                 style = f'background-color: {factor[0]}'
-#                 x.loc[x['labelIds'] == factor, :] = style
-#         return x
-#     else:
-#         ''
 
 colored = True
 today = date.today()
@@ -59,12 +52,12 @@ combined_data =csv_data.merge(api_data_as_json, how='outer')
 
 filtered_data = combined_data.dropna(subset=['hu'])
 filtered_data = filtered_data.sort_values(by='gruppe')
-header_labels = ['rnr', 'hu']
+header_labels = ['rnr']
 header_labels += input_keys(input(), filtered_data)
 
 rnr_data_only = []
 
-#change range to filtered_data[header_labels]
+# change range to filtered_data[header_labels]
 for rnr in range(20, 23):
     URL_2 = f'https://api.baubuddy.de/dev/index.php/v1/labels/{rnr}'
     labelid_data_as_json = pd.read_json(URL_2)
@@ -78,12 +71,11 @@ merged_data = filtered_data.merge(rnr_data_only[['labelIds', 'rnr']], on='rnr', 
 merged_data.drop(['labelIds_x'], inplace=True, axis=1)
 merged_data.rename(columns={'labelIds_y':'labelIds'}, inplace=True)
 
-styler = merged_data[header_labels].style
+styler = merged_data.style
 
 if colored:
     styler.apply(format_color_groups, axis=None)
 
 
 excelfilename =f'vehicles_{d1}.xlsx'
-styler.to_excel(excelfilename, index=False)
-
+styler.to_excel(excelfilename, index=False, columns=header_labels)
