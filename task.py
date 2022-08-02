@@ -7,15 +7,15 @@ def input_keys(data, keys):
     data = list(data.split(' '))
     columns = []
     for value in data:
-        if value in keys and value != 'hu' and value != 'rnr':
+        if value in keys  and value != 'rnr':
             columns.append(value)
 
     return columns
 
 
-def format_color_groups(df):
+def color_rows(df):
     if colored:
-        colors = ['blue', 'green', 'yellow']
+        colors = ['#007500', '#FFA500', '#b30000']
         current_date = datetime.now()
         x = df.copy()
         factors = list(x['hu'].unique())
@@ -37,11 +37,18 @@ def format_color_groups(df):
 def color_cells(v):
     colors = set(merged_data['labelIds'])
     new_colors = [x for x in colors if pd.isnull(x) == False]
-    return f"background-color: {v}" if v in new_colors and v != '' else None
+    return f"color: {v}" if v in new_colors and v != '' else None
+
+
+def choose_to_color(data):
+    if data == "False":
+        return False
+
+    return True
 
 
 today = date.today()
-d1 = today.strftime("%d-%m-%Y")
+d1 = today.strftime("%Y-%m-%d")
 
 URL = 'https://api.baubuddy.de/dev/index.php/v1/vehicles/select/active'
 api_data_as_json = pd.read_json(URL)
@@ -51,13 +58,13 @@ combined_data =csv_data.merge(api_data_as_json, how='outer')
 
 filtered_data = combined_data.dropna(subset=['hu'])
 filtered_data = filtered_data.sort_values(by='gruppe')
-header_labels = ['rnr', 'hu']
-input_labels = input_keys(input(), filtered_data)
-header_labels += input_labels
-colored = True
+header_labels = ['rnr']
+
+header_labels += input_keys(input(), filtered_data)
+colored = choose_to_color(input())
 
 rnr_data_only = []
-for rnr in range(20, 22):
+for rnr in filtered_data['rnr']:
     URL_2 = f'https://api.baubuddy.de/dev/index.php/v1/labels/{rnr}'
     labelid_data_as_json = pd.read_json(URL_2)
     colorcode = None
@@ -71,12 +78,13 @@ merged_data = filtered_data.merge(rnr_data_only[['labelIds', 'rnr']], on='rnr', 
 merged_data.drop(['labelIds_x'], inplace=True, axis=1)
 merged_data.rename(columns={'labelIds_y':'labelIds'}, inplace=True)
 
-styler = merged_data[header_labels].style
-
-if colored:
-    styler.apply(format_color_groups, axis=None)
+styler = merged_data.style
 
 styler.applymap(color_cells)
 
-excelfilename =f'vehicles_{d1}.xlsx'
+if colored:
+    styler.apply(color_rows, axis=None)
+
+
+excelfilename = f'vehicles_{d1}.xlsx'
 styler.to_excel(excelfilename, index=False, columns=header_labels)
